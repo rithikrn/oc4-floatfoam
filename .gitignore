@@ -1,0 +1,36 @@
+# OpenFOAM runtime artifacts
+processor*/
+postProcessing/
+log.*
+*.log
+*.out
+*.err
+*.foam
+
+# Generated OpenFOAM time directories
+0/
+[1-9]*/
+[0-9]*.[0-9]*/
+
+# Generated mesh, links, and feature extraction
+constant/polyMesh/
+constant/extendedFeatureEdgeMesh/
+constant/triSurface/float.stl
+constant/triSurface/*.eMesh
+constant/triSurface/*.extendedFeatureEdgeMesh
+constant/triSurface/*_*.obj
+
+# Generated plots / Python caches
+PM_spectrum_verification.png
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
