@@ -20,8 +20,7 @@ case-name/
 ├── system/          # meshing, solver, schemes, decomposition
 ├── mesh.sh          # links STL, meshes, initializes, decomposes
 ├── run.sh           # runs interFoam -parallel
-├── reconstruct.sh   # reconstructs results
-└── submit.slurm     # batch-template wrapper
+└── submit.slurm     # batch-template wrapper (includes reconstruction)
 ```
 
 Generated folders are intentionally not tracked: `0/`, `processor*/`, `postProcessing/`, `constant/polyMesh/`, logs, and time directories.
@@ -30,29 +29,43 @@ Generated folders are intentionally not tracked: `0/`, `processor*/`, `postProce
 
 ## Standard workflow
 
+### Local execution
+
 From any case directory:
 
 ```bash
 module load openfoam
-chmod +x mesh.sh run.sh reconstruct.sh
+chmod +x mesh.sh run.sh
 
 ./mesh.sh
 ./run.sh
-./reconstruct.sh
 ```
 
-Or with Slurm: Submit from inside the case directory:
+After the run finishes, use OpenFOAM's reconstruction tool directly if needed:
+
+```bash
+reconstructPar
+```
+
+### Slurm HPC execution
+
+Submit from inside the case directory:
 
 ```bash
 cd cases/regular
+module load openfoam
+
+./mesh.sh
 sbatch submit.slurm
 ```
 
-The Slurm scripts also work from the repository root:
+The Slurm script also works from the repository root:
 
 ```bash
 sbatch cases/regular/submit.slurm
 ```
+
+In the Slurm workflow, `submit.slurm` automatically handles both the solver run and parallel reconstruction, including optional cleanup of processor directories.
 
 ---
 
@@ -80,20 +93,29 @@ Runs:
 interFoam -parallel
 ```
 
-It uses `mpirun` by default. Set `USE_SRUN=1` to use `srun` inside a Slurm allocation.
-
-### `reconstruct.sh`
-
-Runs:
+It uses `mpirun` by default. Set `USE_SRUN=1` to use `srun` inside a Slurm allocation:
 
 ```bash
-reconstructPar
+USE_SRUN=1 ./run.sh
 ```
 
-Optional cleanup:
+### `submit.slurm`
+
+Slurm batch script that:
+
+1. Loads the OpenFOAM module.
+2. Runs `interFoam -parallel` with `mpirun` (respecting `SLURM_NTASKS`).
+3. Logs output to `log.interFoam`.
+4. Automatically reconstructs parallel results using `reconstructPar`.
+5. Optionally deletes processor directories on successful reconstruction.
+
+Edit the Slurm resource directives before submission:
 
 ```bash
-DELETE_PROCESSORS_AFTER_RECONSTRUCT=1 ./reconstruct.sh
+#SBATCH --nodes=4
+#SBATCH --ntasks-per-node=24
+#SBATCH --time=0-00:00:00
+#SBATCH --mem=64G
 ```
 
 ---
@@ -102,14 +124,32 @@ DELETE_PROCESSORS_AFTER_RECONSTRUCT=1 ./reconstruct.sh
 
 ```bash
 NPROCS=96                                  # must match system/decomposeParDict
-USE_SRUN=1                                 # use srun instead of mpirun
-GEOMETRY_VARIANT=base                      # geometry/float-base.stl
-GEOMETRY_VARIANT=hollow                    # geometry/float-hollow.stl only
+USE_SRUN=1                                 # use srun instead of mpirun (local runs)
+GEOMETRY_VARIANT=base                      # use geometry/float-base.stl (default)
+GEOMETRY_VARIANT=hollow                    # use geometry/float-hollow.stl
 GEOMETRY_FILE=/absolute/path/to/body.stl   # external STL override
-DELETE_PROCESSORS_AFTER_RECONSTRUCT=1
 ```
 
 `NPROCS` is intentionally checked against `system/decomposeParDict`. If they do not match, the scripts stop with an error instead of launching a mismatched parallel run.
+
+---
+
+## Reconstruction after local runs
+
+If you run `./mesh.sh && ./run.sh` locally (not via Slurm), reconstruct the parallel result manually:
+
+```bash
+# Reconstruct all time steps
+reconstructPar
+
+# Reconstruct only selected time steps
+reconstructPar -time 0,5,10
+
+# Clean up processor directories after reconstruction
+rm -rf processor*
+```
+
+Check the OpenFOAM documentation for additional `reconstructPar` options.
 
 ---
 
