@@ -59,6 +59,19 @@ constant/PM_spectrum_verification.png   # only when PLOT=1
 
 ---
 
+## Motion constraints
+
+This case uses a constrained `sixDoFRigidBodyMotion` setup, not a fully free six-DOF/moored model:
+
+- `fixedLine` direction `(0 0 1)` allows heave.
+- `fixedAxis` axis `(0 1 0)` allows pitch.
+- sway, surge, roll, and yaw are locked.
+- the active restraint is a vertical `linearSpring`; no explicit mooring-line model is enabled.
+
+The generated `0/` directory is not tracked in Git. Always run `./mesh.sh` first on a fresh clone; it copies `0.orig/` to `0/`, applies `setFields`, and decomposes the initialized fields.
+
+---
+
 ## Run
 
 ```bash
