@@ -53,7 +53,7 @@ module load openfoam
 
 ./mesh.sh
 ./run.sh
-./reconstruct.sh
+reconstructPar
 ```
 
 Slurm:
