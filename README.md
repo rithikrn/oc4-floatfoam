@@ -276,13 +276,14 @@ Each case expects a local STL named:
 constant/triSurface/float.stl
 ```
 
-The mesh script should link this local file from the shared `geometry/` folder.
+Stage this file manually before meshing — see [geometry/README.md](geometry/README.md).
 
 To test another semisubmersible STL:
 
 ```bash
 cd cases/decay
-GEOMETRY_FILE=/absolute/path/to/my-semisub.stl ./mesh.sh
+cp /absolute/path/to/my-semisub.stl constant/triSurface/float.stl
+./mesh.sh
 ```
 
 Minimum changes for a new platform:
@@ -319,7 +320,8 @@ Geometry-only hollow mesh:
 
 ```bash
 cd cases/regular
-GEOMETRY_VARIANT=hollow ./mesh.sh
+cp ../../geometry/float-hollow.stl constant/triSurface/float.stl
+./mesh.sh
 ```
 
 Do not treat this as a validated hollow-physics case until the physical properties are updated.
@@ -361,8 +363,9 @@ Each case has a `submit.slurm` file. The intended workflow is:
 ```bash
 cd cases/regular
 module load openfoam
-
+cp ../../geometry/float-base.stl constant/triSurface/float.stl
 ./mesh.sh
+
 sbatch submit.slurm
 ```
 
@@ -407,10 +410,10 @@ or, from a case directory:
 ls ../../geometry/
 ```
 
-If using a custom STL, pass it explicitly:
+You must stage it before meshing:
 
 ```bash
-GEOMETRY_FILE=/absolute/path/to/my-semisub.stl ./mesh.sh
+cp ../../geometry/float-base.stl constant/triSurface/float.stl
 ```
 
 ### `float.eMesh` not found
