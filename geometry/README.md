@@ -14,59 +14,35 @@ The OpenFOAM dictionaries always look for one local file inside each case:
 cases/<case>/constant/triSurface/float.stl
 ```
 
-`mesh.sh` creates that file as a symlink before meshing.
+Copy one of the STLs below into that path before meshing (the file is gitignored and not created automatically).
 
 ---
 
-## Built-in geometry options
+## Selecting a geometry
 
-Base geometry:
+Run from a case directory, before `./mesh.sh`. Base (solid):
 
 ```bash
 cd cases/regular
+cp ../../geometry/float-base.stl constant/triSurface/float.stl
 ./mesh.sh
 ```
 
-Hollow STL geometry:
+Hollow (4 m OWC) — swaps only the STL. It does **not** update mass, centre of
+mass, inertia, hydrostatic equilibrium, restraints, or force reference values:
 
 ```bash
-cd cases/regular
-GEOMETRY_VARIANT=hollow ./mesh.sh
+cp ../../geometry/float-hollow.stl constant/triSurface/float.stl
+./mesh.sh
 ```
 
-Important: `GEOMETRY_VARIANT=hollow` swaps only the STL. It does not automatically update mass, centre of mass, inertia, hydrostatic equilibrium, restraint tuning, or force reference values.
-
----
-
-## Use your own semisubmersible STL
-
-One-off external STL:
+Your own STL — add it to `geometry/` (e.g. `geometry/float-my-design.stl`) or
+copy from anywhere:
 
 ```bash
-cd cases/decay
-GEOMETRY_FILE=/absolute/path/to/my-semisub.stl ./mesh.sh
+cp /absolute/path/to/my-semisub.stl constant/triSurface/float.stl
+./mesh.sh
 ```
-
-Permanent repo addition:
-
-```text
-geometry/float-my-design.stl
-```
-
-Then run:
-
-```bash
-cd cases/decay
-GEOMETRY_VARIANT=my-design ./mesh.sh
-```
-
-The scripts search for:
-
-```text
-geometry/float-${GEOMETRY_VARIANT}.stl
-```
-
----
 
 ## Geometry-swap checklist
 
@@ -156,7 +132,7 @@ For another semisubmersible or wave heading, recheck:
 For a new semisubmersible:
 
 1. Start with `cases/decay/`.
-2. Run `GEOMETRY_FILE=/path/to/new.stl ./mesh.sh`.
+2. Copy it to `constant/triSurface/float.stl`, then run `./mesh.sh`.
 3. Fix STL/mesh problems until `checkMesh` is acceptable.
 4. Update mass, COM, inertia, restraints, and `CofR`.
 5. Run decay and verify stable body motion.
