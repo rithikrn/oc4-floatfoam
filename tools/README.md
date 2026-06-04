@@ -42,7 +42,17 @@ The default setup uses one wave direction, `waveAngle = 0.0`, with reproducible 
 
 ## Install dependencies
 
-From the repository root:
+Use Conda on clusters to avoid conflicts with system Python modules:
+
+```bash
+cd oc4-floatfoam
+conda env create -f tools/environment.yml
+conda activate oc4-floatfoam-pm
+```
+
+The environment pins the generator stack to Python 3.11, NumPy 1.26, and Matplotlib 3.8.
+
+A lightweight pip fallback is also available:
 
 ```bash
 python3 -m venv .venv
