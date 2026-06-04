@@ -1,51 +1,91 @@
 #!/usr/bin/env python3
 """
-Generate OpenFOAM v2206 waveProperties for Pierson-Moskowitz irregular waves.
+Generate an OpenFOAM v2206 waveProperties dictionary for the irregular
+Pierson-Moskowitz wave case.
 
-This tool is ONLY for cases/irregular. The regular-wave case uses OpenFOAM
-StokesII directly through cases/regular/constant/waveProperties and does not
-call this script.
+This script is used only for:
 
-Uses the `irregularMultiDirectional` wave model. Input: Hs and Ts (=Tp).
-
-PM Spectrum:  S(f) = (5/16) Hs^2 fp^4 f^{-5} exp(-5/4 (fp/f)^4)
-
-Usage:
-    python tools/generate-pm-waveproperties.py --Hs 2.44 --Ts 8.1
-    python tools/generate-pm-waveproperties.py --Hs 5.49 --Ts 11.3 --N 100 --seed 42 --outdir cases/irregular/constant
+    cases/irregular/constant/waveProperties
 """
-import numpy as np, argparse, os
+
+from __future__ import annotations
+
+import argparse
+import os
 from datetime import datetime
 
-
-def pm_spectrum(f, Hs, Ts):
-    fp = 1.0/Ts
-    return (5.0/16.0)*Hs**2*fp**4*f**(-5)*np.exp(-1.25*(fp/f)**4)
+import numpy as np
 
 
-def decompose(Hs, Ts, N=100, f_lo=0.5, f_hi=4.0, seed=None):
-    fp = 1.0/Ts; fmin = f_lo*fp; fmax = f_hi*fp; df = (fmax-fmin)/N
-    f = np.linspace(fmin+df/2, fmax-df/2, N)
-    S = pm_spectrum(f, Hs, Ts)
-    H = 2.0*np.sqrt(2.0*S*df); T = 1.0/f
+def pm_spectrum(f: np.ndarray, hs: float, tp: float) -> np.ndarray:
+    """Modified Pierson-Moskowitz spectrum using Hs and Tp."""
+    fp = 1.0 / tp
+    return (5.0 / 16.0) * hs**2 * fp**4 * f**(-5.0) * np.exp(-1.25 * (fp / f) ** 4)
+
+
+def decompose_pm(
+    hs: float,
+    tp: float,
+    n_components: int = 100,
+    f_lo: float = 0.5,
+    f_hi: float = 4.0,
+    seed: int | None = None,
+) -> dict:
+    """Discretize the PM spectrum into OpenFOAM wave components."""
+    fp = 1.0 / tp
+    f_min = f_lo * fp
+    f_max = f_hi * fp
+    df = (f_max - f_min) / n_components
+
+    f = np.linspace(f_min + 0.5 * df, f_max - 0.5 * df, n_components)
+    s = pm_spectrum(f, hs, tp)
+
+    heights = 2.0 * np.sqrt(2.0 * s * df)
+    periods = 1.0 / f
+
     rng = np.random.default_rng(seed)
-    phase = rng.uniform(0, 360, N); dirs = np.zeros(N)
-    m0 = np.sum(S*df); m1 = np.sum(f*S*df); m2 = np.sum(f**2*S*df)
-    return dict(T=T, H=H, phase=phase, direction=dirs, f=f, S=S, df=df,
-                Hs=Hs, Hs_r=4*np.sqrt(m0), Ts=Ts, fp=fp, fr=(fmin, fmax), N=N,
-                m0a=Hs**2/16, m0d=m0, T01=m0/m1, Tz=np.sqrt(m0/m2),
-                ecap=100*m0/(Hs**2/16), seed=seed)
+    phases = rng.uniform(0.0, 360.0, n_components)
+    directions = np.zeros(n_components)
+
+    m0 = float(np.sum(s * df))
+    m1 = float(np.sum(f * s * df))
+    m2 = float(np.sum(f**2 * s * df))
+    m0_target = hs**2 / 16.0
+
+    return {
+        "hs": hs,
+        "tp": tp,
+        "fp": fp,
+        "n": n_components,
+        "f": f,
+        "s": s,
+        "df": df,
+        "periods": periods,
+        "heights": heights,
+        "phases": phases,
+        "directions": directions,
+        "f_min": f_min,
+        "f_max": f_max,
+        "hs_reconstructed": 4.0 * np.sqrt(m0),
+        "energy_captured": 100.0 * m0 / m0_target,
+        "t01": m0 / m1,
+        "tz": np.sqrt(m0 / m2),
+        "seed": seed,
+    }
 
 
-def fmt(v, f='.6f'):
-    return '1((' + ' '.join(f'{x:{f}}' for x in v) + '))'
+def foam_list(values: np.ndarray, number_format: str = ".6f") -> str:
+    """Format a 1D array as OpenFOAM list syntax used by waveProperties."""
+    return "1((" + " ".join(f"{value:{number_format}}" for value in values) + "))"
 
 
-def write_wp(c, path, ramp_n=4):
-    Hs = c['Hs']; Ts = c['Ts']; N = c['N']; ramp = ramp_n*Ts
-    with open(path, 'w') as f:
-        f.write(f"""\
-/*---------------------------------------------------------------------------*\\
+def write_wave_properties(case: dict, path: str, ramp_multiplier: float = 4.0) -> None:
+    """Write the waveProperties dictionary."""
+    hs = case["hs"]
+    tp = case["tp"]
+    ramp_time = ramp_multiplier * tp
+
+    header = f"""/*---------------------------------------------------------------------------*\\
 | =========                 |                                                 |
 | \\\\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
 |  \\\\    /   O peration     | Version:  v2206                                 |
@@ -61,136 +101,131 @@ FoamFile
 }}
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 //
-//  Pierson-Moskowitz irregular wave (auto-generated {datetime.now().strftime('%Y-%m-%d %H:%M')})
-//  Hs = {Hs:.4f} m,  Ts(=Tp) = {Ts:.3f} s,  fp = {c['fp']:.5f} Hz
-//  N = {N} components,  f = [{c['fr'][0]:.5f}, {c['fr'][1]:.5f}] Hz
-//  Hs(recon) = {c['Hs_r']:.4f} m,  error = {abs(c['Hs_r']-Hs)/Hs*100:.3f}%
-//  Energy captured = {c['ecap']:.2f}%,  T01 = {c['T01']:.3f} s,  Tz = {c['Tz']:.3f} s
-//  seed = {c.get('seed','N/A')},  ramp = {ramp:.1f} s
-//
+// Pierson-Moskowitz irregular wave generated on {datetime.now().strftime("%Y-%m-%d %H:%M")}
+// Hs = {hs:.4f} m
+// Tp = {tp:.3f} s
+// fp = {case["fp"]:.5f} Hz
+// N  = {case["n"]} components
+// f  = [{case["f_min"]:.5f}, {case["f_max"]:.5f}] Hz
+// Hs(reconstructed) = {case["hs_reconstructed"]:.4f} m
+// Energy captured   = {case["energy_captured"]:.2f}%
+// T01 = {case["t01"]:.3f} s
+// Tz  = {case["tz"]:.3f} s
+// seed = {case["seed"]}
+// rampTime = {ramp_time:.1f} s
 
 inlet
 {{
-    alpha           alpha.water;
-    waveModel       irregularMultiDirectional;
-    nPaddle         1;
+    alpha              alpha.water;
+    waveModel          irregularMultiDirectional;
+    nPaddle            1;
 
-    // PM irregular sea: Hs = {Hs:.4f} m, Ts = {Ts:.3f} s ({N} components)
-    rampTime        {ramp:.1f};
-    activeAbsorption yes;
-    waveAngle       0.0;
+    rampTime           {ramp_time:.1f};
+    activeAbsorption   yes;
+    waveAngle          0.0;
 
-    wavePeriods     {fmt(c['T'])};
-    waveHeights     {fmt(c['H'])};
-    wavePhases      {fmt(c['phase'],'.3f')};
-    waveDirs        {fmt(c['direction'],'.1f')};
+    wavePeriods        {foam_list(case["periods"])};
+    waveHeights        {foam_list(case["heights"])};
+    wavePhases         {foam_list(case["phases"], ".3f")};
+    waveDirs           {foam_list(case["directions"], ".1f")};
 }}
 
 outlet
 {{
-    alpha           alpha.water;
-    waveModel       shallowWaterAbsorption;
-    nPaddle         1;
+    alpha              alpha.water;
+    waveModel          shallowWaterAbsorption;
+    nPaddle            1;
 }}
 
 // ************************************************************************* //
-""")
+"""
+
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(header)
 
 
-def plot_spec(c, path):
-    """Verification plot: discrete PM components over the continuous spectrum,
-    plus a sample of the reconstructed surface elevation."""
-    import matplotlib; matplotlib.use('Agg'); import matplotlib.pyplot as plt
-    plt.rcParams.update({'font.family': 'serif', 'font.size': 11,
-                         'figure.dpi': 150, 'axes.grid': True,
-                         'grid.alpha': 0.3})
-    Hs = c['Hs']; Ts = c['Ts']
-    # continuous reference curve
-    ff = np.linspace(c['fr'][0], c['fr'][1], 600)
-    Sf = pm_spectrum(ff, Hs, Ts)
+def plot_spectrum(case: dict, path: str) -> None:
+    """Write an optional PM spectrum verification plot."""
+    import matplotlib
 
-    fig, ax = plt.subplots(1, 2, figsize=(11, 4.2))
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
 
-    # --- left: spectrum ---
-    ax[0].plot(ff, Sf, 'b-', lw=1.6, label='PM spectrum S(f)')
-    ax[0].bar(c['f'], c['S'], width=c['df']*0.9, color='tab:orange',
-              alpha=0.55, label=f"{c['N']} components")
-    ax[0].axvline(c['fp'], color='k', ls='--', lw=0.9, label=f"fp = {c['fp']:.3f} Hz")
-    ax[0].set_xlabel('Frequency  f  [Hz]')
-    ax[0].set_ylabel('S(f)  [m$^2$/Hz]')
-    ax[0].set_title(f"PM spectrum  (Hs={Hs:.2f} m, Ts={Ts:.2f} s)")
-    ax[0].legend(fontsize=8)
+    hs = case["hs"]
+    tp = case["tp"]
 
-    # --- right: reconstructed surface elevation ---
-    t = np.linspace(0, 6*Ts, 3000)
-    eta = np.zeros_like(t)
-    w = 2*np.pi*c['f']; a = c['H']/2.0; ph = np.deg2rad(c['phase'])
-    for ai, wi, pi in zip(a, w, ph):
-        eta += ai*np.cos(wi*t + pi)
-    ax[1].plot(t, eta, 'b-', lw=0.8)
-    ax[1].axhline(Hs/2, color='r', ls='--', lw=0.8, label=f"Hs/2 = {Hs/2:.2f} m")
-    ax[1].axhline(-Hs/2, color='r', ls='--', lw=0.8)
-    ax[1].set_xlabel('Time  t  [s]')
-    ax[1].set_ylabel('Surface elevation  $\\eta$  [m]')
-    ax[1].set_title('Reconstructed wave surface (one realisation)')
-    ax[1].legend(fontsize=8)
+    f_ref = np.linspace(case["f_min"], case["f_max"], 600)
+    s_ref = pm_spectrum(f_ref, hs, tp)
 
-    fig.suptitle(
-        f"Hs(recon) = {c['Hs_r']:.3f} m  "
-        f"(error {abs(c['Hs_r']-Hs)/Hs*100:.2f}%),  "
-        f"energy captured {c['ecap']:.1f}%",
-        fontsize=10)
-    fig.tight_layout(rect=[0, 0, 1, 0.95])
-    fig.savefig(path, bbox_inches='tight')
+    fig, ax = plt.subplots(figsize=(7.0, 4.5))
+    ax.plot(f_ref, s_ref, linewidth=1.5, label="continuous PM spectrum")
+    ax.bar(
+        case["f"],
+        case["s"],
+        width=0.9 * case["df"],
+        alpha=0.5,
+        label=f'{case["n"]} discrete components',
+    )
+    ax.axvline(case["fp"], linestyle="--", linewidth=1.0, label=f'fp = {case["fp"]:.3f} Hz')
+
+    ax.set_xlabel("Frequency, f [Hz]")
+    ax.set_ylabel("S(f) [m²/Hz]")
+    ax.set_title(f"PM spectrum, Hs={hs:.2f} m, Tp={tp:.2f} s")
+    ax.grid(True, alpha=0.3)
+    ax.legend()
+
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
     plt.close(fig)
 
 
-def main():
-    ap = argparse.ArgumentParser(
-        description='Generate OpenFOAM v2206 waveProperties for the irregular PM-spectrum case only.')
-    ap.add_argument('--Hs', type=float, required=True,
-                    help='Significant wave height [m]')
-    ap.add_argument('--Ts', type=float, required=True,
-                    help='Peak spectral period Ts (=Tp) [s]')
-    ap.add_argument('--N', type=int, default=100,
-                    help='Number of spectral components (default 100)')
-    ap.add_argument('--seed', type=int, default=None,
-                    help='RNG seed for reproducible random phases')
-    ap.add_argument('--ramp', type=float, default=4.0,
-                    help='Ramp time in multiples of Ts (default 4)')
-    ap.add_argument('--f_lo', type=float, default=0.5,
-                    help='Lower freq bound as multiple of fp (default 0.5)')
-    ap.add_argument('--f_hi', type=float, default=4.0,
-                    help='Upper freq bound as multiple of fp (default 4.0)')
-    ap.add_argument('--outdir', type=str, default='.',
-                    help='Output directory (default current dir)')
-    ap.add_argument('--noplot', action='store_true',
-                    help='Skip the verification plot')
-    args = ap.parse_args()
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Generate OpenFOAM waveProperties for the irregular PM-spectrum case."
+    )
+    parser.add_argument("--Hs", type=float, required=True, help="Significant wave height [m]")
+    parser.add_argument("--Ts", type=float, required=True, help="Peak period used as Tp [s]")
+    parser.add_argument("--N", type=int, default=100, help="Number of spectral components")
+    parser.add_argument("--seed", type=int, default=None, help="Random seed for wave phases")
+    parser.add_argument("--f_lo", type=float, default=0.5, help="Lower frequency bound as fp multiple")
+    parser.add_argument("--f_hi", type=float, default=4.0, help="Upper frequency bound as fp multiple")
+    parser.add_argument("--ramp", type=float, default=4.0, help="Ramp time as multiple of Tp")
+    parser.add_argument("--outdir", type=str, default=".", help="Output directory")
+    parser.add_argument("--noplot", action="store_true", help="Skip verification plot")
+
+    args = parser.parse_args()
 
     os.makedirs(args.outdir, exist_ok=True)
-    c = decompose(args.Hs, args.Ts, N=args.N,
-                  f_lo=args.f_lo, f_hi=args.f_hi, seed=args.seed)
 
-    wp_path = os.path.join(args.outdir, 'waveProperties')
-    write_wp(c, wp_path, ramp_n=args.ramp)
+    case = decompose_pm(
+        hs=args.Hs,
+        tp=args.Ts,
+        n_components=args.N,
+        f_lo=args.f_lo,
+        f_hi=args.f_hi,
+        seed=args.seed,
+    )
 
-    print(f"  Hs (target)        = {c['Hs']:.4f} m")
-    print(f"  Hs (reconstructed) = {c['Hs_r']:.4f} m  "
-          f"(error {abs(c['Hs_r']-c['Hs'])/c['Hs']*100:.3f}%)")
-    print(f"  Ts (=Tp)           = {c['Ts']:.3f} s   fp = {c['fp']:.5f} Hz")
-    print(f"  N components       = {c['N']}   "
-          f"f = [{c['fr'][0]:.5f}, {c['fr'][1]:.5f}] Hz")
-    print(f"  Energy captured    = {c['ecap']:.2f}%")
-    print(f"  T01 = {c['T01']:.3f} s   Tz = {c['Tz']:.3f} s")
-    print(f"  ramp time          = {args.ramp*args.Ts:.1f} s  ({args.ramp:g} x Ts)")
-    print(f"  -> wrote {wp_path}")
+    wave_path = os.path.join(args.outdir, "waveProperties")
+    write_wave_properties(case, wave_path, ramp_multiplier=args.ramp)
+
+    print(f"Hs target          = {case['hs']:.4f} m")
+    print(f"Hs reconstructed   = {case['hs_reconstructed']:.4f} m")
+    print(f"Tp                 = {case['tp']:.3f} s")
+    print(f"fp                 = {case['fp']:.5f} Hz")
+    print(f"N components       = {case['n']}")
+    print(f"frequency range    = [{case['f_min']:.5f}, {case['f_max']:.5f}] Hz")
+    print(f"energy captured    = {case['energy_captured']:.2f}%")
+    print(f"T01                = {case['t01']:.3f} s")
+    print(f"Tz                 = {case['tz']:.3f} s")
+    print(f"ramp time          = {args.ramp * args.Ts:.1f} s")
+    print(f"wrote              = {wave_path}")
 
     if not args.noplot:
-        plot_path = os.path.join(args.outdir, 'PM_spectrum_verification.png')
-        plot_spec(c, plot_path)
-        print(f"  -> wrote {plot_path}")
+        plot_path = os.path.join(args.outdir, "PM_spectrum_verification.png")
+        plot_spectrum(case, plot_path)
+        print(f"wrote              = {plot_path}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
