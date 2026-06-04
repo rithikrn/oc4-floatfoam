@@ -27,15 +27,15 @@ sixDoFRigidBodyMotionCoeffs
     innerDistance   10;
     outerDistance   40.0;
 
-    centreOfMass    (0.0 0.0 -9.893); // HOLLOW: replace with verified hollow centre of mass; see README §Base-to-hollow conversion.
+    centreOfMass    (0.0 0.0 -9.893);   // BASE (solid).  HOLLOW (4 m bore): (0.0 0.0 -9.885)
 
     
 
     // Total platform mass
-    mass            1.37E7; // HOLLOW: replace with verified hollow total mass; see README §Base-to-hollow conversion.
+    mass            1.37E7;             // BASE (solid).  HOLLOW (4 m bore): 1.349E7   (~ -1.53%;)
 
     // Moment of inertia about the centre of mass
-    momentOfInertia (1.3813E10 1.3813E10 1.2287E10); // HOLLOW: replace with verified hollow inertia tensor.
+    momentOfInertia (1.3813E10 1.3813E10 1.2287E10);  // BASE (solid).  HOLLOW (4 m bore): (1.098E10 1.098E10 1.157E10)
 
     rho             rhoInf;       
     rhoInf          1025; 
