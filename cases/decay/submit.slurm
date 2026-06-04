@@ -3,7 +3,7 @@
 #SBATCH --job-name=oc4-decay
 #SBATCH --nodes=4
 #SBATCH --ntasks-per-node=24
-#SBATCH --time=4-00:00:00
+#SBATCH --time=0-00:00:00
 #SBATCH --mem=64G
 #SBATCH --output=oc4floatfoam-decay.out
 #SBATCH --error=oc4floatfoam-decay.err
