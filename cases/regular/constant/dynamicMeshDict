@@ -39,7 +39,7 @@ sixDoFRigidBodyMotionCoeffs
 
     report          on;
     accelerationRelaxation 0.6;
-    accelerationDamping    0.9;;
+    accelerationDamping    0.9;
 
     solver
     {
