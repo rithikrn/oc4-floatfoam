@@ -31,7 +31,7 @@ sixDoFRigidBodyMotionCoeffs
     
     mass            1.37E7; // HOLLOW: replace with verified hollow total mass; see README §Base-to-hollow conversion.
 
-    // Cuboid moment of inertia about the centre of mass
+    // Moment of inertia about the centre of mass
     momentOfInertia (1.3813E10 1.3813E10 1.2287E10); // HOLLOW: replace with verified hollow inertia tensor.
 
     rho             rhoInf;
