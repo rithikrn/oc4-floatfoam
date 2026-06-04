@@ -28,6 +28,8 @@ cd oc4-floatfoam/cases/regular
 module load openfoam
 
 chmod +x mesh.sh run.sh
+
+cp ../../geometry/float-base.stl constant/triSurface/float.stl   # stage geometry
 ./mesh.sh
 ./run.sh
 ```
