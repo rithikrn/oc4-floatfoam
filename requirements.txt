@@ -1,5 +1,6 @@
 # Python packages for tools/generate-pm-waveproperties.py
 # numpy is required for waveProperties generation.
-# matplotlib is only needed when PLOT=1 or when --noplot is omitted.
+# matplotlib is only required when plotting is enabled.
+
 numpy>=1.20
 matplotlib>=3.5
