@@ -35,9 +35,10 @@ paraFoam -case .
 ```
 
 If you are on a Slurm cluster:
+Submit each job from inside its case directory so Slurm sets `SLURM_SUBMIT_DIR` correctly:
 
 ```bash
-cd oc4-floatfoam/cases/regular
+cd cases/regular
 sbatch submit.slurm
 ```
 
