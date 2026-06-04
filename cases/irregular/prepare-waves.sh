@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 
 case_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -12,7 +13,7 @@ f_lo="${F_LO:-0.5}"
 f_hi="${F_HI:-4.0}"
 ramp="${RAMP:-4}"
 
-# Plotting is opt-in so normal wave generation only requires numpy.
+# Plotting is opt-in so normal generation only requires numpy.
 plot_args=(--noplot)
 if [[ "${PLOT:-0}" == "1" ]]; then
     plot_args=()
