@@ -1,7 +1,7 @@
 # oc4-floatfoam
 
 ![OpenFOAM](https://img.shields.io/badge/OpenFOAM-ESI%20v2206-blue)
-![Solver](https://img.shields.io/badge/solver-interFoAM-blue)
+![Solver](https://img.shields.io/badge/solver-interFoam-blue)
 ![Motion](https://img.shields.io/badge/motion-sixDoF%20dynamic%20mesh-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -13,7 +13,7 @@ The repository includes three case types:
 * regular-wave response,
 * Pierson–Moskowitz irregular-wave response.
 
-It is also intended as a reusable starting point for other semisubmersible geometries. To use another floating platform, replace the STL geometry and then update the mesh domain, refinement regions, mass properties, centre of mass, inertia, restraints, waterline, and force/moment reference values.
+The repository showcases the OC4-DeepCwind semisubmersible setup used in this work, but it can also be used as a starting point for other semisubmersible geometries. To use another floating platform, replace the STL geometry and update the mesh domain, refinement regions, mass properties, centre of mass, inertia, restraints, waterline, and force/moment reference values.
 
 ---
 
@@ -27,10 +27,15 @@ cd oc4-floatfoam/cases/regular
 
 module load openfoam
 
-chmod +x mesh.sh run.sh reconstruct.sh
+chmod +x mesh.sh run.sh
 ./mesh.sh
 ./run.sh
-./reconstruct.sh
+```
+
+For local post-processing after a parallel run, reconstruct the case manually:
+
+```bash
+reconstructPar
 ```
 
 Open the reconstructed case:
@@ -40,7 +45,7 @@ touch regular.foam
 paraFoam -case .
 ```
 
-On Slurm, mesh first, then submit the solver job:
+On Slurm, mesh first, then submit the solver job. Reconstruction is handled inside `submit.slurm`.
 
 ```bash
 cd oc4-floatfoam/cases/regular
@@ -89,7 +94,6 @@ oc4-floatfoam/
     │   ├── system/
     │   ├── mesh.sh
     │   ├── run.sh
-    │   ├── reconstruct.sh
     │   └── submit.slurm
     ├── regular/
     │   ├── README.md
@@ -98,7 +102,6 @@ oc4-floatfoam/
     │   ├── system/
     │   ├── mesh.sh
     │   ├── run.sh
-    │   ├── reconstruct.sh
     │   └── submit.slurm
     └── irregular/
         ├── README.md
@@ -108,7 +111,6 @@ oc4-floatfoam/
         ├── prepare-waves.sh
         ├── mesh.sh
         ├── run.sh
-        ├── reconstruct.sh
         └── submit.slurm
 ```
 
@@ -184,13 +186,22 @@ The regular-wave case does not require Python.
 
 ## Case workflows
 
-Each case follows the same basic pattern:
+Each case follows the same basic local workflow:
 
 ```bash
 ./mesh.sh
 ./run.sh
-./reconstruct.sh
+reconstructPar
 ```
+
+For Slurm runs:
+
+```bash
+./mesh.sh
+sbatch submit.slurm
+```
+
+In the Slurm workflow, reconstruction is already included in `submit.slurm`.
 
 Read the case-specific documentation before editing:
 
@@ -352,6 +363,8 @@ module load openfoam
 ./mesh.sh
 sbatch submit.slurm
 ```
+
+In this workflow, `submit.slurm` runs the solver and reconstructs the parallel result.
 
 Before submission, edit the Slurm resource lines for your cluster:
 
