@@ -1,0 +1,53 @@
+/*---------------------------------------------------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2206                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      waveProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+inlet
+{
+    alpha           alpha.water;
+
+    waveModel       StokesII;
+
+    nPaddle         1;
+
+    // Sea State 4 (regular wave): H [m]
+    waveHeight      2.44;
+
+    // Wave heading (deg). 0 = along +x from inlet -> outlet
+    waveAngle       0.0;
+
+    // Ramp the wave forcing to avoid an impulsive start
+    // Recommended: 3--5 wave periods. Here: 4*T = 32.4 s
+    rampTime        32.4;
+
+    // Active absorption at the wavemaker boundary
+    activeAbsorption yes;
+
+    // Sea State 4 period T [s]
+    wavePeriod      8.1;
+}
+
+outlet
+{
+    alpha           alpha.water;
+
+    // Absorption model at outlet to reduce reflections
+    waveModel       shallowWaterAbsorption;
+
+    nPaddle         1;
+}
+
+
+// ************************************************************************* //
