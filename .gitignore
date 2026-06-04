@@ -7,12 +7,12 @@ log.*
 *.err
 *.foam
 
-# Generated OpenFOAM time directories
+# Generated OpenFOAM initial/time directories
 0/
 [1-9]*/
 [0-9]*.[0-9]*/
 
-# Generated mesh, links, and feature extraction
+# Generated mesh and feature-extraction output
 constant/polyMesh/
 constant/extendedFeatureEdgeMesh/
 constant/triSurface/float.stl
@@ -20,12 +20,16 @@ constant/triSurface/*.eMesh
 constant/triSurface/*.extendedFeatureEdgeMesh
 constant/triSurface/*_*.obj
 
-# Generated plots / Python caches
+# Irregular-wave optional plot
 PM_spectrum_verification.png
+constant/PM_spectrum_verification.png
+
+# Python environments and caches
 __pycache__/
 *.py[cod]
 .venv/
 venv/
+.conda/
 
 # OS/editor files
 .DS_Store
