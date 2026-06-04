@@ -75,7 +75,8 @@ If this case is unstable, do not trust the regular or irregular cases yet.
 Start here for a new platform:
 
 ```bash
-GEOMETRY_FILE=/absolute/path/to/your-semisub.stl ./mesh.sh
+cp /absolute/path/to/your-semisub.stl constant/triSurface/float.stl
+./mesh.sh
 ```
 
 Then update `constant/dynamicMeshDict` and `system/controlDict` to match the new body mass properties and force/moment reference point.
