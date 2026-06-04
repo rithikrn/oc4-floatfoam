@@ -1,27 +1,33 @@
 # oc4-floatfoam
 
 ![OpenFOAM](https://img.shields.io/badge/OpenFOAM-ESI%20v2206-blue)
-![Solver](https://img.shields.io/badge/solver-interFoam-blue)
+![Solver](https://img.shields.io/badge/solver-interFoAM-blue)
 ![Motion](https://img.shields.io/badge/motion-sixDoF%20dynamic%20mesh-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-`oc4-floatfoam` is a deployable OpenFOAM case repository for wave–structure interaction simulations of an OC4-DeepCwind-class floating semisubmersible. It includes still-water decay, regular-wave, and Pierson–Moskowitz irregular-wave cases using `interFoam`, VOF free-surface flow, `dynamicMotionSolverFvMesh`, and `sixDoFRigidBodyMotion`.
+`oc4-floatfoam` is an OpenFOAM case repository for wave–structure interaction simulations of an OC4-DeepCwind-class floating semisubmersible platform.
 
-The repository also works as a starting template for other semisubmersibles: replace the STL, then update the mesh domain, mass properties, restraints, waterline, and force reference values. The geometry-swap checklist is in [`geometry/README.md`](geometry/README.md).
+The repository includes three case types:
+
+* still-water decay,
+* regular-wave response,
+* Pierson–Moskowitz irregular-wave response.
+
+It is also intended as a reusable starting point for other semisubmersible geometries. To use another floating platform, replace the STL geometry and then update the mesh domain, refinement regions, mass properties, centre of mass, inertia, restraints, waterline, and force/moment reference values.
 
 ---
 
 ## Start here
 
-For a first test, run the regular-wave case:
+For a first run, start with the regular-wave case:
 
 ```bash
 git clone https://github.com/rithikrn/oc4-floatfoam.git
 cd oc4-floatfoam/cases/regular
 
 module load openfoam
-chmod +x mesh.sh run.sh reconstruct.sh
 
+chmod +x mesh.sh run.sh reconstruct.sh
 ./mesh.sh
 ./run.sh
 ./reconstruct.sh
@@ -34,26 +40,28 @@ touch regular.foam
 paraFoam -case .
 ```
 
-If you are on a Slurm cluster:
+On Slurm, mesh first, then submit the solver job:
 
 ```bash
 cd oc4-floatfoam/cases/regular
+
+module load openfoam
+./mesh.sh
+
 sbatch submit.slurm
 ```
-
-Before changing the processor count, make `NPROCS`, Slurm tasks, and `system/decomposeParDict` agree.
 
 ---
 
 ## What is included
 
-| Folder | Purpose |
-|---|---|
-| [`cases/decay/`](cases/decay/README.md) | Still-water baseline for mesh motion, hydrostatics, rigid-body properties, and restraint checks. |
-| [`cases/regular/`](cases/regular/README.md) | Deterministic regular-wave case using OpenFOAM `StokesII` in `constant/waveProperties`. |
-| [`cases/irregular/`](cases/irregular/README.md) | PM-spectrum irregular-wave case using generated `constant/waveProperties`. |
-| [`tools/`](tools/README.md) | Python generator used only by the irregular PM case. |
-| [`geometry/`](geometry/README.md) | Shared STL files and instructions for swapping to another semisubmersible geometry. |
+| Path                                            | Purpose                                                                                                   |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| [`cases/decay/`](cases/decay/README.md)         | Still-water case for checking hydrostatics, dynamic mesh motion, mass properties, and restraint behavior. |
+| [`cases/regular/`](cases/regular/README.md)     | Deterministic regular-wave case using OpenFOAM `StokesII`.                                                |
+| [`cases/irregular/`](cases/irregular/README.md) | Pierson–Moskowitz irregular-wave case using generated `waveProperties`.                                   |
+| [`tools/`](tools/README.md)                     | Python PM wave generator used only by the irregular case.                                                 |
+| [`geometry/`](geometry/README.md)               | Shared STL files and guidance for swapping to another semisubmersible geometry.                           |
 
 ---
 
@@ -63,14 +71,14 @@ Before changing the processor count, make `NPROCS`, Slurm tasks, and `system/dec
 oc4-floatfoam/
 ├── README.md
 ├── LICENSE
-├── requirements.txt                  # pip fallback for the PM generator
+├── requirements.txt
 ├── geometry/
 │   ├── README.md
 │   ├── float-base.stl
 │   └── float-hollow.stl
 ├── tools/
 │   ├── README.md
-│   ├── environment.yml               # recommended Conda env for the PM generator
+│   ├── environment.yml
 │   └── generate-pm-waveproperties.py
 └── cases/
     ├── README.md
@@ -86,7 +94,7 @@ oc4-floatfoam/
     ├── regular/
     │   ├── README.md
     │   ├── 0.orig/
-    │   ├── constant/waveProperties
+    │   ├── constant/
     │   ├── system/
     │   ├── mesh.sh
     │   ├── run.sh
@@ -95,7 +103,7 @@ oc4-floatfoam/
     └── irregular/
         ├── README.md
         ├── 0.orig/
-        ├── constant/waveProperties
+        ├── constant/
         ├── system/
         ├── prepare-waves.sh
         ├── mesh.sh
@@ -104,7 +112,16 @@ oc4-floatfoam/
         └── submit.slurm
 ```
 
-Generated OpenFOAM outputs such as `0/`, `processor*/`, `postProcessing/`, `constant/polyMesh/`, logs, `.foam` files, and time folders are intentionally ignored by Git.
+Generated OpenFOAM outputs are not tracked by Git. Expect these to appear after meshing/running:
+
+```text
+0/
+processor*/
+postProcessing/
+constant/polyMesh/
+log.*
+time directories
+```
 
 ---
 
@@ -112,16 +129,27 @@ Generated OpenFOAM outputs such as `0/`, `processor*/`, `postProcessing/`, `cons
 
 ### OpenFOAM
 
-Target environment: **ESI/OpenCFD OpenFOAM v2206**.
-
-Required commands:
+Target environment:
 
 ```text
-interFoam, blockMesh, surfaceFeatureExtract, snappyHexMesh, checkMesh,
-setFields, decomposePar, reconstructPar, reconstructParMesh
+ESI/OpenCFD OpenFOAM v2206
 ```
 
-Quick check:
+Required OpenFOAM tools:
+
+```text
+interFoam
+blockMesh
+surfaceFeatureExtract
+snappyHexMesh
+checkMesh
+setFields
+decomposePar
+reconstructPar
+reconstructParMesh
+```
+
+Quick environment check:
 
 ```bash
 module avail openfoam
@@ -132,9 +160,9 @@ interFoam -help | head
 
 ### Python
 
-Python is needed **only** for the irregular PM-wave generator. Decay and regular-wave cases do not need Python.
+Python is required only for the irregular PM wave generator.
 
-For clusters, the recommended reproducible setup is the Conda environment in `tools/environment.yml`:
+Recommended Conda setup:
 
 ```bash
 cd oc4-floatfoam
@@ -142,7 +170,7 @@ conda env create -f tools/environment.yml
 conda activate oc4-floatfoam-pm
 ```
 
-A lightweight pip fallback is also provided:
+Pip fallback:
 
 ```bash
 python3 -m venv .venv
@@ -150,64 +178,61 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-`numpy` is required for wave generation. `matplotlib` is only needed for the optional PM verification plot.
+The regular-wave case does not require Python.
 
 ---
 
 ## Case workflows
 
-All cases use the same basic workflow:
+Each case follows the same basic pattern:
 
 ```bash
-./mesh.sh          # links STL, builds mesh, initializes alpha.water, decomposes
-./run.sh           # runs interFoam -parallel
-./reconstruct.sh   # reconstructs processor fields
+./mesh.sh
+./run.sh
+./reconstruct.sh
 ```
 
-Read the case-specific guide before editing a case:
+Read the case-specific documentation before editing:
 
-- [`cases/README.md`](cases/README.md) — common script behavior and environment variables.
-- [`cases/decay/README.md`](cases/decay/README.md) — still-water baseline.
-- [`cases/regular/README.md`](cases/regular/README.md) — StokesII regular wave.
-- [`cases/irregular/README.md`](cases/irregular/README.md) — PM irregular waves.
+* [`cases/README.md`](cases/README.md)
+* [`cases/decay/README.md`](cases/decay/README.md)
+* [`cases/regular/README.md`](cases/regular/README.md)
+* [`cases/irregular/README.md`](cases/irregular/README.md)
 
-Common run variables:
+The repository tracks `0.orig/`, not generated `0/`. The `mesh.sh` script prepares `0/`, applies `setFields`, builds the mesh, and decomposes the case for parallel solving.
 
-```bash
-NPROCS=96                                  # must match system/decomposeParDict
-USE_SRUN=1                                 # use srun instead of mpirun inside Slurm
-GEOMETRY_VARIANT=base                      # geometry/float-base.stl
-GEOMETRY_VARIANT=hollow                    # geometry/float-hollow.stl, geometry only
-GEOMETRY_FILE=/absolute/path/to/body.stl   # one-off external STL
-DELETE_PROCESSORS_AFTER_RECONSTRUCT=1      # clean processor folders after reconstruction
-```
+---
 
-The scripts now stop early if `NPROCS` does not match `system/decomposeParDict`. This prevents the common mistake where `decomposePar` creates one number of processor folders but `mpirun`/`srun` launches a different number of ranks.
+## Motion model
 
-### Initial fields and constrained body motion
+The shipped setup is not a fully free six-DOF/moored model.
 
-The Git repository tracks `0.orig/`, not the generated `0/` directory. This is intentional: `mesh.sh` copies `0.orig/` to `0/`, runs `setFields`, and then decomposes the initialized case. Do not run `run.sh` first on a fresh clone. Start with `mesh.sh` so the initial phase field and processor folders are created correctly.
+The active `sixDoFRigidBodyMotion` setup is constrained to:
 
-The rigid body is not released in all six degrees of freedom. The active `sixDoFRigidBodyMotion` constraints in `constant/dynamicMeshDict` are:
+* heave using `fixedLine` in the vertical direction `(0 0 1)`,
+* pitch using `fixedAxis` about the transverse axis `(0 1 0)`.
 
-- `fixedLine` with direction `(0 0 1)`, allowing vertical heave translation;
-- `fixedAxis` with axis `(0 1 0)`, allowing pitch rotation about the transverse axis.
+Sway, surge, roll, and yaw are locked. The active restraint is a vertical `linearSpring`; no explicit mooring-line model is included.
 
-This means sway, surge, roll, and yaw are locked in the shipped setup. The simplification is useful for head-sea symmetry and controlled heave/pitch response studies, but it is not a fully moored six-DOF model. The only restraint included is a vertical `linearSpring`; no explicit mooring-line model is active.
+This is intentional for head-sea heave/pitch response studies. If you want a fully moored six-DOF model, you must modify `constant/dynamicMeshDict`, update the restraints/mooring representation, and verify the mass properties, inertia tensor, centre of mass, and force/moment reference point.
 
 ---
 
 ## Irregular PM generator
 
-The Python generator is only for:
+The Python generator is used only for:
 
 ```text
 cases/irregular/constant/waveProperties
 ```
 
-It is **not** used by the regular-wave case. Regular waves are defined directly in [`cases/regular/constant/waveProperties`](cases/regular/constant/waveProperties) using OpenFOAM `StokesII`.
+It is not used by the regular-wave case. The regular case uses OpenFOAM `StokesII` directly in:
 
-Regenerate the default irregular-wave file:
+```text
+cases/regular/constant/waveProperties
+```
+
+Generate the default PM realization:
 
 ```bash
 cd cases/irregular
@@ -220,49 +245,27 @@ Change sea-state inputs:
 HS=5.49 TS=11.3 NCOMP=100 SEED=42 F_LO=0.5 F_HI=4.0 RAMP=4 ./prepare-waves.sh
 ```
 
-Write the optional spectrum plot:
+Optional plot:
 
 ```bash
 PLOT=1 ./prepare-waves.sh
 ```
 
-Formula, assumptions, and command-line options are documented in [`tools/README.md`](tools/README.md).
-
----
-
-## Base-to-hollow conversion
-
-The shipped runnable setup is the **base** semisubmersible case. The hollow STL is included for geometry comparison, but a production hollow-physics run requires verified hollow properties.
-
-Geometry-only hollow mesh:
-
-```bash
-cd cases/regular
-GEOMETRY_VARIANT=hollow ./mesh.sh
-```
-
-Before trusting hollow results, update:
-
-- `constant/dynamicMeshDict`: mass, centre of mass, moment of inertia, restraints, spring anchor/reference point.
-- `system/controlDict`: force and moment centre `CofR`.
-- `system/snappyHexMeshDict`: refinement near modified/hollow columns if needed.
-- Hydrostatic equilibrium: displaced volume, draft, waterline, and restoring behavior.
-
-Inline `// HOLLOW:` comments mark the main dictionary locations.
+More detail is in [`tools/README.md`](tools/README.md).
 
 ---
 
 ## Geometry and STL handling
 
-Every case expects a local STL named:
+Each case expects a local STL named:
 
 ```text
 constant/triSurface/float.stl
 ```
 
-`mesh.sh` creates this as a symlink from `geometry/` or from `GEOMETRY_FILE`.
+The mesh script should link this local file from the shared `geometry/` folder.
 
-Use another semisubmersible STL:
+To test another semisubmersible STL:
 
 ```bash
 cd cases/decay
@@ -271,14 +274,42 @@ GEOMETRY_FILE=/absolute/path/to/my-semisub.stl ./mesh.sh
 
 Minimum changes for a new platform:
 
-1. Start with `cases/decay/`, not the wave cases.
-2. Confirm STL units are meters and the body is correctly oriented.
-3. Keep the patch name as `float`, or update all patch references.
-4. Update tank size, refinement boxes, `locationInMesh`, and water initialization.
-5. Update mass, COM, inertia, restraints, and `forces.CofR`.
-6. Run decay first; move to regular waves only after decay is stable.
+1. Start with `cases/decay/`.
+2. Confirm the STL units are meters.
+3. Keep the patch name as `float`, or update every patch reference.
+4. Update the domain size, refinement boxes, `locationInMesh`, and water initialization.
+5. Update mass, centre of mass, inertia, restraints, and `forces.CofR`.
+6. Run decay first.
+7. Move to regular waves only after decay behaves correctly.
+8. Move to irregular waves last.
 
-The full checklist is in [`geometry/README.md`](geometry/README.md).
+Full geometry guidance is in [`geometry/README.md`](geometry/README.md).
+
+---
+
+## Base-to-hollow conversion
+
+The shipped runnable setup should be treated as the base semisubmersible case.
+
+The hollow STL is included for geometry comparison, but a trustworthy hollow-physics run requires updating:
+
+* body mass,
+* centre of mass,
+* moment of inertia,
+* spring/restraint points,
+* hydrostatic equilibrium,
+* displaced volume assumptions,
+* `forces.CofR`,
+* local mesh refinement near hollow columns.
+
+Geometry-only hollow mesh:
+
+```bash
+cd cases/regular
+GEOMETRY_VARIANT=hollow ./mesh.sh
+```
+
+Do not treat this as a validated hollow-physics case until the physical properties are updated.
 
 ---
 
@@ -291,9 +322,9 @@ postProcessing/forces/
 postProcessing/sixDoFRigidBodyState/
 ```
 
-The irregular case also writes interface-height probes and selected field-function-object outputs from `system/controlDict`.
+The irregular case also writes wave/interface-height and selected field-function-object outputs, depending on `system/controlDict`.
 
-Quick checks after a run starts:
+Quick checks:
 
 ```bash
 find postProcessing -maxdepth 3 -type f | sort | head
@@ -301,56 +332,132 @@ grep -n "Courant Number" log.interFoam | tail
 grep -n "sixDoFRigidBodyMotion" log.interFoam | head
 ```
 
+Useful outputs include:
+
+* force and moment histories from the `forces` function object,
+* rigid-body displacement/rotation from `sixDoFRigidBodyState`,
+* wave/interface measurements in the irregular case,
+* solver logs for Courant number, residuals, and mesh-motion behavior.
+
 ---
 
 ## HPC and Slurm notes
 
-Each case includes a Slurm template. Edit resources before submitting:
+Each case has a `submit.slurm` file. The intended workflow is:
 
 ```bash
-#SBATCH --nodes=4
-#SBATCH --ntasks-per-node=24
-#SBATCH --time=4-00:00:00
-#SBATCH --mem=64G
+cd cases/regular
+module load openfoam
+
+./mesh.sh
+sbatch submit.slurm
 ```
 
-Email directives are commented out by default so the script does not fail with a placeholder address. Add your real email if needed.
+Before submission, edit the Slurm resource lines for your cluster:
 
-The Slurm scripts are safe to submit either from the case directory or from the repository root, for example:
-
-```bash
-sbatch cases/regular/submit.slurm
+```text
+#SBATCH --nodes=
+#SBATCH --ntasks-per-node=
+#SBATCH --time=
+#SBATCH --mem=
 ```
 
-For clusters that require Slurm-native MPI launch:
+The total Slurm task count should match the decomposition used by the case.
+
+If your cluster prefers `srun` instead of `mpirun`, replace the solver line in `submit.slurm` according to your local OpenFOAM/MPI module guidance.
+
+Typical Slurm monitoring commands:
 
 ```bash
-USE_SRUN=1 sbatch cases/regular/submit.slurm
-```
-
-For irregular waves, regenerate `waveProperties` inside the batch job only when needed:
-
-```bash
-PREPARE_WAVES=1 sbatch cases/irregular/submit.slurm
+squeue -u $USER
+tail -f oc4-regular.out
+tail -f oc4-regular.err
 ```
 
 ---
 
 ## Troubleshooting
 
-- **`float.stl` not found:** run `./mesh.sh` from a case directory, check `geometry/float-base.stl`, or pass `GEOMETRY_FILE=/path/to/body.stl`.
-- **`float.eMesh` not found:** inspect `log.surfaceFeatureExtract`; feature extraction failed before `snappyHexMesh`.
-- **Processor-count mismatch:** make `system/decomposeParDict`, `NPROCS`, and Slurm task count agree.
-- **Regular wave fails:** inspect `cases/regular/constant/waveProperties`; do not use the PM generator for this case.
-- **Irregular wave fails:** regenerate with `cd cases/irregular && ./prepare-waves.sh`.
-- **Courant number blows up:** reduce time step/Courant settings, inspect mesh quality, lengthen wave ramp, and verify mass/inertia/restraints.
-- **Forces or moments look shifted:** update `forces.CofR`, especially after changing geometry or COM.
+### `float.stl` not found
+
+Check that the shared geometry exists:
+
+```bash
+ls geometry/
+```
+
+or, from a case directory:
+
+```bash
+ls ../../geometry/
+```
+
+If using a custom STL, pass it explicitly:
+
+```bash
+GEOMETRY_FILE=/absolute/path/to/my-semisub.stl ./mesh.sh
+```
+
+### `float.eMesh` not found
+
+Inspect the feature-extraction log:
+
+```bash
+cat log.surfaceFeatureExtract
+```
+
+Then confirm the STL path and the entry in `system/surfaceFeatureExtractDict`.
+
+### Case starts but crashes quickly
+
+Check:
+
+```bash
+grep -n "Courant Number" log.interFoam | tail
+grep -n "Floating point exception" log.interFoam
+grep -n "sixDoFRigidBodyMotion" log.interFoam | head
+```
+
+Common causes are poor mesh quality, excessive time step, wrong mass/inertia values, wrong centre of mass, or unstable restraint settings.
+
+### No `postProcessing/` folder
+
+Confirm that `interFoam` actually started and that function objects are enabled in `system/controlDict`.
+
+### Regular wave problem
+
+Edit:
+
+```text
+cases/regular/constant/waveProperties
+```
+
+Do not use the PM generator for the regular case.
+
+### Irregular wave problem
+
+Regenerate the PM wave dictionary:
+
+```bash
+cd cases/irregular
+./prepare-waves.sh
+```
+
+Then check:
+
+```bash
+head constant/waveProperties
+```
+
+### Forces or moments look shifted
+
+Check `forces.CofR`, especially after changing geometry, centre of mass, or the STL reference coordinate system.
 
 ---
 
 ## References and citation
 
-Suggested citation:
+Suggested repository citation:
 
 ```text
 Nambiar, R. R. (2026). oc4-floatfoam: OpenFOAM wave cases for floating semisubmersible simulations. GitHub repository. https://github.com/rithikrn/oc4-floatfoam
@@ -358,11 +465,9 @@ Nambiar, R. R. (2026). oc4-floatfoam: OpenFOAM wave cases for floating semisubme
 
 References:
 
-- Robertson, A., Jonkman, J., Goupee, A., Coulling, A., and Luan, C. *Definition of the Semisubmersible Floating System for Phase II of OC4*. NREL/TP-5000-60601, 2014. DOI: `10.2172/1155123`.
-- Pierson, W. J., Jr., and Moskowitz, L. *A proposed spectral form for fully developed wind seas based on the similarity theory of S. A. Kitaigorodskii*. Journal of Geophysical Research, 1964. DOI: `10.1029/JZ069i024p05181`.
-- OpenFOAM / OpenCFD documentation for `interFoam`, wave boundary conditions, dynamic mesh motion, function objects, and `sixDoFRigidBodyMotion`: `https://doc.openfoam.com/`.
-- Higuera, P., Lara, J. L., and Losada, I. J. *Realistic wave generation and active wave absorption for Navier-Stokes models: Application to OpenFOAM*. Coastal Engineering, 2013. DOI: `10.1016/j.coastaleng.2012.07.002`.
-- Jacobsen, N. G., Fuhrman, D. R., and Fredsøe, J. *A wave generation toolbox for the open-source CFD library: OpenFOAM*. International Journal for Numerical Methods in Fluids, 2012. DOI: `10.1002/fld.2726`.
+* Robertson, A., Jonkman, J., Goupee, A., Coulling, A., and Luan, C. *Definition of the Semisubmersible Floating System for Phase II of OC4*. NREL/TP-5000-60601, 2014. DOI: `10.2172/1155123`.
+* Pierson, W. J., Jr., and Moskowitz, L. *A proposed spectral form for fully developed wind seas based on the similarity theory of S. A. Kitaigorodskii*. Journal of Geophysical Research, 1964. DOI: `10.1029/JZ069i024p05181`.
+* OpenFOAM / OpenCFD documentation for `interFoam`, wave boundary conditions, dynamic mesh motion, function objects, and `sixDoFRigidBodyMotion`: `https://doc.openfoam.com/`.
 
 ---
 
