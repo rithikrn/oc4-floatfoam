@@ -35,10 +35,9 @@ paraFoam -case .
 ```
 
 If you are on a Slurm cluster:
-Submit each job from inside its case directory so Slurm sets `SLURM_SUBMIT_DIR` correctly:
 
 ```bash
-cd cases/regular
+cd oc4-floatfoam/cases/regular
 sbatch submit.slurm
 ```
 
@@ -64,13 +63,14 @@ Before changing the processor count, make `NPROCS`, Slurm tasks, and `system/dec
 oc4-floatfoam/
 ├── README.md
 ├── LICENSE
-├── requirements.txt
+├── requirements.txt                  # pip fallback for the PM generator
 ├── geometry/
 │   ├── README.md
 │   ├── float-base.stl
 │   └── float-hollow.stl
 ├── tools/
 │   ├── README.md
+│   ├── environment.yml               # recommended Conda env for the PM generator
 │   └── generate-pm-waveproperties.py
 └── cases/
     ├── README.md
@@ -134,8 +134,17 @@ interFoam -help | head
 
 Python is needed **only** for the irregular PM-wave generator. Decay and regular-wave cases do not need Python.
 
+For clusters, the recommended reproducible setup is the Conda environment in `tools/environment.yml`:
+
 ```bash
 cd oc4-floatfoam
+conda env create -f tools/environment.yml
+conda activate oc4-floatfoam-pm
+```
+
+A lightweight pip fallback is also provided:
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -174,6 +183,17 @@ DELETE_PROCESSORS_AFTER_RECONSTRUCT=1      # clean processor folders after recon
 ```
 
 The scripts now stop early if `NPROCS` does not match `system/decomposeParDict`. This prevents the common mistake where `decomposePar` creates one number of processor folders but `mpirun`/`srun` launches a different number of ranks.
+
+### Initial fields and constrained body motion
+
+The Git repository tracks `0.orig/`, not the generated `0/` directory. This is intentional: `mesh.sh` copies `0.orig/` to `0/`, runs `setFields`, and then decomposes the initialized case. Do not run `run.sh` first on a fresh clone. Start with `mesh.sh` so the initial phase field and processor folders are created correctly.
+
+The rigid body is not released in all six degrees of freedom. The active `sixDoFRigidBodyMotion` constraints in `constant/dynamicMeshDict` are:
+
+- `fixedLine` with direction `(0 0 1)`, allowing vertical heave translation;
+- `fixedAxis` with axis `(0 1 0)`, allowing pitch rotation about the transverse axis.
+
+This means sway, surge, roll, and yaw are locked in the shipped setup. The simplification is useful for head-sea symmetry and controlled heave/pitch response studies, but it is not a fully moored six-DOF model. The only restraint included is a vertical `linearSpring`; no explicit mooring-line model is active.
 
 ---
 
