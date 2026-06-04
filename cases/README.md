@@ -41,9 +41,10 @@ chmod +x mesh.sh run.sh reconstruct.sh
 ./reconstruct.sh
 ```
 
-Or with Slurm:
+Or with Slurm: Submit from inside the case directory:
 
 ```bash
+cd cases/regular
 sbatch submit.slurm
 ```
 
