@@ -81,7 +81,7 @@ module load openfoam
 ./prepare-waves.sh      # optional if using the shipped waveProperties
 ./mesh.sh
 ./run.sh
-./reconstruct.sh
+reconstructPar
 ```
 
 Slurm:
