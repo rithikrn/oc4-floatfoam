@@ -12,8 +12,18 @@
 
 set -euo pipefail
 
-case_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
+    case_dir="$SLURM_SUBMIT_DIR"
+else
+    case_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
 cd "$case_dir"
+
+if [[ ! -f mesh.sh ]]; then
+    echo "ERROR: submit from inside a case directory (mesh.sh not found in $case_dir)." >&2
+    echo "Use:  cd cases/<case> && sbatch submit.slurm" >&2
+    exit 1
+fi
 
 module purge
 module load openfoam
