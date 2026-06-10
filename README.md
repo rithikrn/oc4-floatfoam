@@ -1,6 +1,6 @@
 # oc4-floatfoam
 
-![OpenFOAM](https://img.shields.io/badge/OpenFOAM-ESI%20v2206-blue)
+![OpenFOAM](https://img.shields.io/badge/OpenFOAM-ESI%20v2312-blue)
 ![Solver](https://img.shields.io/badge/solver-interFoam-blue)
 ![Motion](https://img.shields.io/badge/motion-sixDoF%20dynamic%20mesh-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
