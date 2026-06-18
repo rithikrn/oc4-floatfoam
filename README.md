@@ -1,10 +1,5 @@
 # oc4-floatfoam
 
-![OpenFOAM](https://img.shields.io/badge/OpenFOAM-ESI%20v2312-blue)
-![Solver](https://img.shields.io/badge/solver-interFoam-blue)
-![Motion](https://img.shields.io/badge/motion-sixDoF%20dynamic%20mesh-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-
 `oc4-floatfoam` is an OpenFOAM case repository for wave–structure interaction simulations of an OC4-DeepCwind-class floating semisubmersible platform.
 
 The repository includes three case types:
