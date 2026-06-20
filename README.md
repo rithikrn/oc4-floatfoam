@@ -468,6 +468,16 @@ Check `forces.CofR`, especially after changing geometry, centre of mass, or the 
 ---
 
 ## References and citation
+Suggested citation of my masters thesis:
+
+```bibtex
+@mastersthesis{nambiar2026modeling,
+  title={Modeling and Analysis of an OWC-Integrated Floating Offshore Wind Turbine Platform},
+  author={Nambiar, Rithik Ramachandran},
+  year={2026},
+  school={Iowa State University}
+}
+```
 
 Suggested repository citation:
 
