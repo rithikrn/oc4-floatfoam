@@ -484,14 +484,6 @@ Suggested repository citation:
 ```text
 Nambiar, R. R. (2026). oc4-floatfoam: OpenFOAM wave cases for floating semisubmersible simulations. GitHub repository. https://github.com/rithikrn/oc4-floatfoam
 ```
-```bibtex
-@mastersthesis{nambiar2026modeling,
-  title={Modeling and Analysis of an OWC-Integrated Floating Offshore Wind Turbine Platform},
-  author={Nambiar, Rithik Ramachandran},
-  year={2026},
-  school={Iowa State University}
-}
-```
 
 References:
 
